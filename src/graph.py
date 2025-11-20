@@ -9,7 +9,6 @@ from langchain_core.messages import (
     HumanMessage,
     ToolMessage,
 )
-from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph, START
@@ -18,6 +17,7 @@ from langgraph.prebuilt import ToolNode,create_react_agent
 from pydantic import BaseModel
 
 from src.agent import create_agent
+from src.llm import create_chat_model
 from src.tools import find_pseudopotential, submit_single_job,write_script,calculate_lc,generate_convergence_test,generate_eos_test,\
 submit_and_monitor_job,find_job_list,read_energy_from_output,add_resource_suggestion,get_kspacing_ecutwfc
 from src.prompt import dft_agent_prompt,hpc_agent_prompt
@@ -101,8 +101,7 @@ def agent_node(state, agent, name):
 
 def create_graph(config: dict) -> StateGraph:
     # Define the model
-    if 'claude' in config['LANGSIM_MODEL']:
-        llm = ChatAnthropic(model=config["LANGSIM_MODEL"], api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
+    llm = create_chat_model(config, temperature=0.0)
     # System Supervisor
     def supervisor_agent(state):
         supervisor_chain = (
