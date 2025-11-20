@@ -1,21 +1,12 @@
 from copy import deepcopy
 from matplotlib import pyplot as plt
 from matplotlib import rcParams
-import pandas as pd
-from math import e
-from networkx import predecessor
-import pandas as pd
 from src.utils import *
 from src.myCANVAS import CANVAS
-from ase import Atoms, Atom
-from langchain.agents import tool
-from langgraph.prebuilt import create_react_agent
+from langchain.tools import tool
 import os
 from typing import Annotated, Dict, Literal, Optional, Sequence, Tuple, Any
 import numpy as np
-from ase.lattice.cubic import FaceCenteredCubic
-import ast
-import re
 import io
 from ase.io import read, write
 from ase.lattice.cubic import FaceCenteredCubic, BodyCenteredCubic, SimpleCubic, Diamond
@@ -23,14 +14,8 @@ from ase.io import read
 from ase.calculators.espresso import Espresso, EspressoProfile
 from ase.eos import calculate_eos,EquationOfState
 from ase.units import kJ
-from ase.filters import ExpCellFilter
-from ase.optimize import BFGS, FIRE
-from ase.io.trajectory import Trajectory
-from ase.io.lammpsdata import write_lammps_data
 from ase.build import bulk, surface, add_adsorbate
-import ase.build
 from ase import Atoms
-import subprocess
 import time
 from pysqa import QueueAdapter
 import json
