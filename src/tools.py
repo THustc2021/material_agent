@@ -10,9 +10,7 @@ from src.myCANVAS import CANVAS
 from ase import Atoms, Atom
 from langchain.agents import tool
 from langgraph.prebuilt import create_react_agent
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import AzureChatOpenAI
-import os 
+import os
 from typing import Annotated, Dict, Literal, Optional, Sequence, Tuple, Any
 import numpy as np
 from ase.lattice.cubic import FaceCenteredCubic
@@ -38,6 +36,7 @@ from pysqa import QueueAdapter
 import json
 import pandas as pd
 import sqlite3
+from src.llm import create_chat_model
 from filecmp import cmp
 import contextlib
 from autocat.surface import generate_surface_structures
@@ -718,13 +717,7 @@ def get_convergence_suggestions(
     
     # config = load_config(os.path.join('./config', "default.yaml"))
     config = var.OTHER_GLOBAL_VARIABLES
-    # llm = ChatAnthropic(model="claude-3-7-sonnet-20250219", api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
-    workerllm = ChatAnthropic(model="claude-3-7-sonnet-20250219", api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
-    # llm = ChatAnthropic(model="claude-3-5-sonnet-20241022", api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
-    # workerllm = ChatAnthropic(model="claude-3-5-sonnet-20241022", api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
-    # llm = AzureChatOpenAI(model="gpt-4o", api_version="2024-08-01-preview", api_key=config["OpenAI_API_KEY"], azure_endpoint = config["OpenAI_BASE_URL"])
-    # workerllm = AzureChatOpenAI(model="gpt-4o", api_version="2024-08-01-preview", api_key=config["OpenAI_API_KEY"], azure_endpoint = config["OpenAI_BASE_URL"])
-    # llm = ChatDeepSeek(model_name=config["DeepSeek_MDL"], api_key=config['DeepSeek_API_KEY'], api_base=config['DeepSeek_BASE_URL'], temperature=0.0)
+    workerllm = create_chat_model(config, temperature=0.0)
     
     finalSuggestion = ""
     for myfile in [

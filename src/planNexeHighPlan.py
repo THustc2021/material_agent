@@ -9,10 +9,6 @@ from langchain_core.messages import (
     HumanMessage,
     ToolMessage,
 )
-from langchain_anthropic import ChatAnthropic
-from langchain_openai import ChatOpenAI
-from langchain_deepseek import ChatDeepSeek
-
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph, START
@@ -25,6 +21,7 @@ from src.tools import find_pseudopotential, submit_single_job,write_script,calcu
 submit_and_monitor_job,find_job_list,read_energy_from_output,add_resource_suggestion
 from src.prompt import dft_agent_prompt,hpc_agent_prompt
 from src.graph import create_graph
+from src.llm import create_chat_model
 
 
 class PlanExecute(TypedDict):
@@ -109,9 +106,7 @@ Update your plan accordingly. If no more steps are needed and you can return to 
 def create_planning_graph(config):
     simTeam = create_graph(config)
     
-    llm = None
-    if 'claude' in config['LANGSIM_MODEL']:
-        llm = ChatAnthropic(model=config["LANGSIM_MODEL"], api_key=config['ANTHROPIC_API_KEY'],temperature=0.0)
+    llm = create_chat_model(config, temperature=0.0)
     
     planner = planner_prompt | llm.with_structured_output(Plan)
     replanner = replanner_prompt | llm.with_structured_output(Act)
