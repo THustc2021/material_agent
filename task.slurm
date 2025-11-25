@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=ollama-v100
+#SBATCH --job-name=material_agent-v100
 
 #SBATCH --partition=gpu_v100
 
@@ -14,7 +14,7 @@
 
 #SBATCH --time=04:00:00
 
-#SBATCH --output=v100_%j.out
+#SBATCH --output=log/material_agent_v100.out
 
 # 加载正确的模块层级（非常关键）
 module load cluster/genius/gpu_v100
