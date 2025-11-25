@@ -2,6 +2,8 @@
 
 #SBATCH --job-name=material_agent-v100
 
+#SBATCH --clusters=genius
+
 #SBATCH --partition=gpu_v100
 
 #SBATCH --nodes=1

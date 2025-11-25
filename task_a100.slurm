@@ -2,6 +2,8 @@
 
 #SBATCH --job-name=material_agent-a100
 
+#SBATCH --clusters=wice
+
 #SBATCH --partition=gpu_a100
 
 #SBATCH --nodes=1
@@ -20,7 +22,7 @@
 module load cluster/wice/gpu_a100
 
 # 模型保存
-export OLLAMA_MODELS=/data/leuven/377/vsc37725/ollama_models
+source ~/.bashrc
 
 # 加载 ollama
 module load ollama/0.6.0-GCCcore-13.3.0-CUDA-12.6.0
