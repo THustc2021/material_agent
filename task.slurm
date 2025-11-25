@@ -30,5 +30,10 @@ sleep 8
 # 下载模型
 ollama pull llama3.1
 
+# 启用Python
+module load Python/3.10.8-GCCcore-12.2.0
+
+source PythonEnv/bin/activate
+
 # 运行程序
 python invoke.py
