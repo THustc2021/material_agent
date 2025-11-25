@@ -1,22 +1,20 @@
+from typing_extensions import Unpack
+
 import operator
 from typing import Annotated, Sequence, TypedDict,Literal
 import functools
-import os
 
-from langchain_core.tools import tool
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
     ToolMessage,
 )
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph, START
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import ToolNode,create_react_agent
+from langchain.agents import create_agent
 from pydantic import BaseModel
 
-from src.agent import create_agent
 from src.llm import create_chat_model
 from src.tools import find_pseudopotential, submit_single_job,write_script,calculate_lc,generate_convergence_test,generate_eos_test,\
 submit_and_monitor_job,find_job_list,read_energy_from_output,add_resource_suggestion,get_kspacing_ecutwfc
@@ -77,7 +75,7 @@ system_prompt = (f'''
 options = ["FINISH"] + members
 
 class routeResponse(BaseModel):
-    next: Literal[*options]
+    next: Literal[Unpack[options]]
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -115,8 +113,8 @@ def create_graph(config: dict) -> StateGraph:
 
     ### DFT Agent
     dft_tools = [find_pseudopotential,write_script,calculate_lc,generate_convergence_test,generate_eos_test,get_kspacing_ecutwfc]
-    dft_agent = create_react_agent(llm, tools=dft_tools,
-                                   state_modifier=dft_agent_prompt)   
+    dft_agent = create_agent(llm, tools=dft_tools,
+                                   system_prompt=dft_agent_prompt)
     dft_node = functools.partial(agent_node, agent=dft_agent, name="DFT_Agent")
 
 
@@ -124,8 +122,8 @@ def create_graph(config: dict) -> StateGraph:
     # hpc_tools = [read_script, submit_and_monitor_job, read_energy_from_output]
     hpc_tools = [submit_and_monitor_job,find_job_list,add_resource_suggestion,read_energy_from_output]
 
-    hpc_agent = create_react_agent(llm, tools=hpc_tools,
-                                   state_modifier=hpc_agent_prompt)
+    hpc_agent = create_agent(llm, tools=hpc_tools,
+                                   system_prompt=hpc_agent_prompt)
 
     hpc_node = functools.partial(agent_node, agent=hpc_agent, name="HPC_Agent")
 
