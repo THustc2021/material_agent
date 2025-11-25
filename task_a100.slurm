@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=material_agent-v100
+#SBATCH --job-name=material_agent-a100
 
-#SBATCH --partition=gpu_v100
+#SBATCH --partition=gpu_a100
 
 #SBATCH --nodes=1
 
@@ -14,13 +14,13 @@
 
 #SBATCH --time=02:00:00
 
-#SBATCH --output=log/material_agent_v100.out
+#SBATCH --output=log/material_agent_a100.out
 
 # 加载正确的模块层级（非常关键）
-module load cluster/genius/gpu_v100
+module load cluster/wice/gpu_a100
 
 # 模型保存
-source ~/.bashrc
+export OLLAMA_MODELS=/data/leuven/377/vsc37725/ollama_models
 
 # 加载 ollama
 module load ollama/0.6.0-GCCcore-13.3.0-CUDA-12.6.0
