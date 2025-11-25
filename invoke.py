@@ -173,6 +173,8 @@ if __name__ == "__main__":
 
     print("Start, check the log file for details")
     log_filename = f"./log/agent_stream_{int(time.time())}.log"  # Add timestamp to filename
+    if not os.path.exists(os.path.dirname(log_filename)):
+        os.makedirs(os.path.dirname(log_filename))
     with open(log_filename, "a") as log_file:
         log_file.write(f"=== Session started at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
         if eval(config["SAVE_DIALOGUE"]):
