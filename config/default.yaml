@@ -1,13 +1,11 @@
 ## Environment variables
 OLLAMA_BASE_URL: "http://localhost:11434"
-OLLAMA_MODEL: "llama3.1"
+OLLAMA_MODEL: "llama3.1:latest"
 
 # Pseudo potential path
-PSEUDO_DIR: '/nfs/turbo/coe-venkvis/ziqiw-turbo/material_agent/all_lda_pbe_UPF'
-# PSEUDO_DIR: '/nfs/turbo/coe-venkvis/ziqiw-turbo/sssp'
+PSEUDO_DIR: 'resources/all_lda_pbe_UPF'
 
 # Working directory
-# WORKING_DIR: '/nfs/turbo/coe-venkvis/ziqiw-turbo/material_agent/LDAProdNoReflecout'
-WORKING_DIR: '/nfs/turbo/coe-venkvis/ziqiw-turbo/material_agent/BEEFtry3out'
+WORKING_DIR: 'output/BEEFtry3out'
 
 SAVE_DIALOGUE: 'True'

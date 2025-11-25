@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 
 
 def create_chat_model(config: Dict[str, Any], *, temperature: float = 0.0) -> ChatOllama:

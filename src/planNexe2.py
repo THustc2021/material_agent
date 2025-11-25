@@ -1,22 +1,12 @@
-import operator
-from typing import Annotated, Sequence, TypedDict,Literal, List, Dict, Tuple, Union
 import functools
-import os
-
-from langchain_core.tools import tool
-from langchain_core.messages import (
-    BaseMessage,
-    HumanMessage,
-    ToolMessage,
-)
-from src.llm import create_chat_model
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph, START
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import ToolNode,create_react_agent
+from langgraph.prebuilt import ToolNode
+from langchain.agents import create_agent
 from pydantic import BaseModel, Field
+from typing import Annotated, Sequence, TypedDict,Literal, List, Dict, Tuple, Union
 
 from src.tools import *
 from src.prompt import dft_agent_prompt,hpc_agent_prompt,supervisor_prompt
@@ -123,7 +113,6 @@ def print_stream(s):
                     f.write("\n")
         else:
             if hasattr(message, 'usage_metadata'):
-                var.TOKEN_USAGE.append(message.usage_metadata)
                 print(f"input_tokens: {message.usage_metadata['input_tokens']}, output_tokens: {message.usage_metadata['output_tokens']}")
                 if var.my_SAVE_DIALOGUE:
                     with open(f"{var.my_WORKING_DIRECTORY}/his.txt", "a") as f:
@@ -355,8 +344,7 @@ def create_planning_graph(config: dict) -> StateGraph:
         get_convergence_suggestions,
         analyze_BEEF_result
         ]
-    dft_agent = create_react_agent(workerllm, tools=dft_tools,
-                                   state_modifier=dft_agent_prompt)   
+    dft_agent = create_agent(workerllm, tools=dft_tools, system_prompt=dft_agent_prompt)
     dft_node = functools.partial(worker_agent_node, agent=dft_agent, name="DFT_Agent", past_steps_list=PAST_STEPS)
 
 
@@ -370,8 +358,7 @@ def create_planning_graph(config: dict) -> StateGraph:
         add_resource_suggestion
         ]
 
-    hpc_agent = create_react_agent(workerllm, tools=hpc_tools,
-                                   state_modifier=hpc_agent_prompt)
+    hpc_agent = create_agent(workerllm, tools=hpc_tools, system_prompt=hpc_agent_prompt)
 
     hpc_node = functools.partial(worker_agent_node, agent=hpc_agent, name="HPC_Agent", past_steps_list=PAST_STEPS)
     

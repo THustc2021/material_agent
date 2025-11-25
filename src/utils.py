@@ -3,9 +3,12 @@ import os,yaml
 from typing import Callable, List, Literal
 from pydantic import BaseModel
 import pandas as pd
-from src import var
+
 from ase.io import read
 import numpy as np
+
+from src import var
+
 
 def load_config(path: str):
     ## Load the configuration file
@@ -16,6 +19,7 @@ def load_config(path: str):
         var.OTHER_GLOBAL_VARIABLES[key] = value
     var.my_WORKING_DIRECTORY = config["WORKING_DIR"]
     return config
+
 # def check_config(config: dict):
 #     for key, value in config.items():
 #         _set_if_undefined(key)
