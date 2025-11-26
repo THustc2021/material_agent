@@ -343,13 +343,12 @@ def write_QE_script_w_ASE(
     except:
         # check if file exists
         if os.path.exists(inputAtomsDir):
-            raise ValueError(f"Job {tmpinputAtomsDir} failed or did not converge. Please only use converged jobs.")
+            return f"Job {tmpinputAtomsDir} failed or did not converge. Please only use converged jobs."
         else:
-            raise ValueError(f"Invalid input atoms directory: {tmpinputAtomsDir}. make sure to supply either absolute path, or relative path starting with './{DirOfInterests}'. Please check the path in canvas and try again.")
+            return f"Invalid input atoms directory: {tmpinputAtomsDir}. make sure to supply either absolute path, or relative path starting with './{DirOfInterests}'. Please check the path in canvas and try again."
     
     filenameWDir = os.path.join(WORKING_DIRECTORY, filename)
-    
-    
+
     kpoints = [
             2 * ((np.ceil(2 * np.pi / np.linalg.norm(ii) / kspacing).astype(int)) // 2 + 1) for ii in atoms.cell
         ]
@@ -484,7 +483,6 @@ def generate_convergence_test(input_file_name: Annotated[str, "Name of the templ
     try:
         atom = read(input_file)
     except:
-        # time.sleep(60)
         return f"Invalid input file path {input_file}, please inspect CANVAS and select the correct template file."
     
     cell = atom.cell
@@ -887,9 +885,10 @@ def get_kspacing_ecutwfc(jobFileIdx: Annotated[List[int], "indexs of files in th
     
     job_dict = CANVAS.canvas.get('jobs_K_and_ecut', {})
     job_list = CANVAS.canvas.get('finished_job_list', []).copy()
+    assert len(job_list) > 0, "job list 0"
+
     job_list = np.array(job_list, dtype=str)[jobFileIdx]
     print(f"actual job list: {job_list}")
-    assert len(job_list) > 0, "job list 0"
     
     print(f"successfully read {len(job_list)} jobs, and {len(job_dict)} job_dict")
 

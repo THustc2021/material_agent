@@ -1,6 +1,6 @@
 ## Environment variables
 OLLAMA_BASE_URL: "http://localhost:11434"
-OLLAMA_MODEL: "qwen3:latest"
+OLLAMA_MODEL: "llama3.1:latest"
 
 # Pseudo potential path
 PSEUDO_DIR: 'resources/all_lda_pbe_UPF'

@@ -1,14 +1,19 @@
-import functools
+import functools, re
+import random
 
+from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
+from langchain.agents.middleware import after_model, after_agent, wrap_tool_call
 from langgraph.graph import END, StateGraph, START
 from langgraph.graph.state import CompiledStateGraph
 from langchain.agents import create_agent
+from langgraph.prebuilt.tool_node import ToolCallRequest
+from langgraph.types import RetryPolicy, Command
 from pydantic import BaseModel, Field
 from typing import Union, TypedDict
 
-from config.load_config import WORKING_DIRECTORY, config, save_dialogure
+from config.load_config import WORKING_DIRECTORY, config, save_dialogure, llm_config
 from src.tools import *
 from src.prompt import dft_agent_prompt, hpc_agent_prompt, supervisor_prompt, members
 
@@ -20,14 +25,12 @@ class myStep(BaseModel):
         description=f"Agent to perform the step. Should be one of {members}."
     )
 
-
 class PlanExecute(TypedDict):
     input: str
     plan: List[myStep]
     past_steps: List[myStep]
     response: str
     next: str
-
 
 class Plan(BaseModel):
     """Plan to follow in future"""
@@ -40,11 +43,9 @@ class Plan(BaseModel):
         # should be in sorted order by the order of execution"""
     )
 
-
 class Response(BaseModel):
     """End everything and response to the user."""
     response: str
-
 
 class Act(BaseModel):
     """Action to perform."""
@@ -56,14 +57,10 @@ class Act(BaseModel):
 
 def print_stream(s):
     if "messages" not in s:
-        print("#################")
+        print("💬 " + repr(s))
         if save_dialogure:
             with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                f.write("#################\n")
-        print(s)
-        if save_dialogure:
-            with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                f.write(repr(s))
+                f.write("💬 " + repr(s))
                 f.write("\n")
     else:
         message = s["messages"][-1]
@@ -74,6 +71,11 @@ def print_stream(s):
                     f.write(repr(message))
                     f.write("\n")
         else:
+            message.pretty_print()
+            if save_dialogure:
+                with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+                    f.write(message.pretty_repr())
+                    f.write("\n")
             if hasattr(message, 'usage_metadata'):
                 print(
                     f"input_tokens: {message.usage_metadata['input_tokens']}, output_tokens: {message.usage_metadata['output_tokens']}")
@@ -81,32 +83,24 @@ def print_stream(s):
                     with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
                         f.write(
                             f"input_tokens: {message.usage_metadata['input_tokens']}, output_tokens: {message.usage_metadata['output_tokens']}\n")
-            message.pretty_print()
-            if save_dialogure:
-                with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                    f.write(message.pretty_repr())
-                    f.write("\n")
-    print()
-    if save_dialogure:
-        with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write("\n")
-
 
 def supervisor_chain_node(state, chain, name):
+
     # read "status.txt" in the working directory
     with open(f"{WORKING_DIRECTORY}/status.txt", "r") as f:
         status = f.read()
     while status == "stop":
         print(f"Calculation pause, supervisor is waiting. cwd: {WORKING_DIRECTORY}")
-        # wait for 5 second
         time.sleep(5)
         with open(f"{WORKING_DIRECTORY}/status.txt", "r") as f:
             status = f.read()
 
-    print(f"supervisor is processing!!!!!")
+    print("=" * 60)
+    print(f"⚙️ supervisor {name} is processing")
     if save_dialogure:
         with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write(f"supervisor is processing!!!!!\n")
+            f.write("=" * 60 + "\n")
+            f.write(f"⚙️ supervisor {name} is processing\n")
 
     print(state)
     if save_dialogure:
@@ -116,6 +110,13 @@ def supervisor_chain_node(state, chain, name):
 
     output = chain.invoke(state)
 
+    # print(f"⚙️ supervisor {name} is finished")
+    # print("=" * 60)
+    # if save_dialogure:
+    #     with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+    #         f.write(f"⚙️ supervisor {name} is finished\n")
+    #         f.write("=" * 60 + "\n")
+
     if isinstance(output.action, Response):
         return {"response": output.action.response, "next": "FINISH"}
     else:
@@ -124,6 +125,43 @@ def supervisor_chain_node(state, chain, name):
         else:
             return {"plan": output.action.steps, "next": output.action.steps[0].agent}
 
+@after_model
+def extract_tool_calls(state, runtime):
+    message = state["messages"][-1]
+    if isinstance(message, AIMessage) and not message.tool_calls:
+        m = re.search(
+            r"<tool_call>\s*(\{.*?\})\s*</tool_call>",
+            message.content,
+            re.DOTALL
+        )
+        if m:
+            tool_calls = [json.loads(g) for g in m.groups()]
+            for mt in tool_calls:
+                if "name" not in mt:
+                    return state
+                if "args" not in mt:
+                    mt["args"] = {}
+                if "id" not in mt:
+                    mt["id"] = str(random.randint(0, 1000000))
+            message.tool_calls = tool_calls
+    return state
+
+@wrap_tool_call
+def retry_tool_on_error(request: ToolCallRequest, handler):
+    """
+    拦截工具调用:
+    - 如果工具返回 error，则让 agent 回到 model 节点重新生成 tool call。
+    """
+    result = handler(request)
+
+    # 如果是 ToolMessage，则可以检查是否报错
+    if isinstance(result, ToolMessage):
+        if result.status == "error":
+            state = request.state
+            state["messages"].append(result)
+            return Command(update=state, goto="model")
+
+    return result
 
 def worker_agent_node(state, agent, name, past_steps_list):
     # read "status.txt" in the working directory
@@ -136,21 +174,21 @@ def worker_agent_node(state, agent, name, past_steps_list):
         with open(f"{WORKING_DIRECTORY}/status.txt", "r") as f:
             status = f.read()
 
-    print(f"Agent {name} is processing!!!!!")
+    print("=" * 60)
+    print(f"🤖 Agent {name} is processing")
     if save_dialogure:
         with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write(f"Agent {name} is processing!!!!!\n")
+            f.write("=" * 60 + "\n")
+            f.write(f"🤖 Agent {name} is processing\n")
 
     plan = state["plan"]
     plan_str = "\n".join(f"{i + 1}. {step.step}" for i, step in enumerate(plan))
-    print(plan_str)
+    print("Here is the plan given by supervisor: \n" + plan_str)
     if save_dialogure:
         with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write(plan_str)
+            f.write("Here is the plan given by supervisor: \n" + plan_str)
             f.write("\n")
     task = plan[0]
-    #     task_formatted = f"""For the following plan:
-    # {plan_str}\n\nYou are tasked with executing step {1}, {task}."""
     old_tasks_string = "\n".join(f"{i + 1}. {step.agent}: {step.step}" for i, step in enumerate(past_steps_list))
     task_formatted = f"""
 Here are what has been done so far:
@@ -158,30 +196,46 @@ Here are what has been done so far:
 Here is the overall objective:
 {state["input"]}
 Now, you are tasked with: {task}. 
-If a tool is relevant for this task, you MUST call it using the proper tool calling protocol.
-Do NOT return JSON. Do NOT describe the tool. Directly invoke the tool with tool call.
+""" + \
 """
-
+When you decide to use a tool, you can either call the tool directly, or respond with:
+<tool_call>
+{"name": "TOOL_NAME", "args": {...}, "id": "RANDOM_TOOL_ID"}
+</tool_call>
+Do not write any natural language outside this block.
+"""
     print(task_formatted)
     if save_dialogure:
         with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write(task_formatted)
-            f.write("\n")
-    print(f"Agent {name} is processing!!!!!")
-    if save_dialogure:
-        with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-            f.write(f"Agent {name} is processing!!!!!\n")
+            f.write(task_formatted + "\n")
 
     for agent_response in agent.stream(
-            {"messages": [{"role": "user", "content": task_formatted}]},
-            {"configurable": {"thread_id": "1"}, "recursion_limit": 1000}
+        {"messages": [{"role": "user", "content": task_formatted}]},
+        llm_config
     ):
-        # set agent_response to be the value of the first key of the dictionary
+        # it might be difficult for an open-sourced llm to call a tool at this case
         agent_response_p = next(iter(agent_response.values()))
-
-        past_steps_list.append(myStep(step=agent_response_p["messages"][-1].content, agent=name))
-
         print_stream(agent_response_p)
+
+    print("=" * 60)
+    print(f"🤖 Agent {name} finished with following output:")
+    if save_dialogure:
+        with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+            f.write("=" * 60 + "\n")
+            f.write(f"🤖 Agent {name} finished with following output:\n")
+
+    # record the final output
+    past_steps_list.append(
+        myStep(step=str(agent_response_p["messages"][-1].content), agent=name)
+    )
+    print_stream(agent_response_p)
+
+    # print(f"🤖 Agent {name} is finished")
+    # print("=" * 60)
+    # if save_dialogure:
+    #     with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+    #         f.write(f"🤖 Agent {name}  is finished\n")
+    #         f.write("=" * 60 + "\n")
 
     return {
         "past_steps": past_steps_list,
@@ -227,7 +281,7 @@ def create_planning_graph() -> CompiledStateGraph:
         get_convergence_suggestions,
         analyze_BEEF_result
     ]
-    dft_agent = create_agent(workerllm, tools=dft_tools, system_prompt=dft_agent_prompt)
+    dft_agent = create_agent(workerllm, tools=dft_tools, system_prompt=dft_agent_prompt, middleware=[extract_tool_calls, retry_tool_on_error])
     dft_node = functools.partial(worker_agent_node, agent=dft_agent, name="DFT_Agent", past_steps_list=PAST_STEPS)
 
     ### HPC Agent
@@ -238,14 +292,14 @@ def create_planning_graph() -> CompiledStateGraph:
         submit_and_monitor_job,
         add_resource_suggestion
     ]
-    hpc_agent = create_agent(workerllm, tools=hpc_tools, system_prompt=hpc_agent_prompt)
+    hpc_agent = create_agent(workerllm, tools=hpc_tools, system_prompt=hpc_agent_prompt, middleware=[extract_tool_calls, retry_tool_on_error])
     hpc_node = functools.partial(worker_agent_node, agent=hpc_agent, name="HPC_Agent", past_steps_list=PAST_STEPS)
 
     # Create the graph
     graph = StateGraph(PlanExecute)
-    graph.add_node("DFT_Agent", dft_node)
-    graph.add_node("HPC_Agent", hpc_node)
-    graph.add_node("Supervisor", supervisor_agent)
+    graph.add_node("DFT_Agent", dft_node, retry_policy=RetryPolicy(max_attempts=3, initial_interval=1.0))
+    graph.add_node("HPC_Agent", hpc_node, retry_policy=RetryPolicy(max_attempts=3, initial_interval=1.0))
+    graph.add_node("Supervisor", supervisor_agent, retry_policy=RetryPolicy(max_attempts=3, initial_interval=1.0))
 
     # We want our workers to ALWAYS "report back" to the supervisor when done
     for member in members:

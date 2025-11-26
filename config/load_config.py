@@ -12,6 +12,7 @@ def load_config(path: str):
 #     return 'Loaded config successfully'
 
 config = load_config(os.path.join(os.path.dirname(__file__), "default.yaml"))
+llm_config = {"configurable": {"thread_id": "1"}, "recursion_limit": 1000}
 
 WORKING_DIRECTORY = config["WORKING_DIR"]
 save_dialogure = config["SAVE_DIALOGUE"]

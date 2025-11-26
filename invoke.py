@@ -5,7 +5,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 from src.graph import create_planning_graph as create_graph
 from src.utils import save_graph_to_file,initialize_database
 from src.myCANVAS import CANVAS
-from config.load_config import WORKING_DIRECTORY, config, save_dialogure
+from config.load_config import WORKING_DIRECTORY, config, save_dialogure, llm_config
 
 if __name__ == "__main__":
 
@@ -114,7 +114,6 @@ if __name__ == "__main__":
     initialize_database(db_file)
 
     graph = create_graph()
-    llm_config = {"thread_id": "1", 'recursion_limit': 1000}
 
     save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
 
@@ -136,16 +135,19 @@ if __name__ == "__main__":
             }, llm_config):
             
             if "__end__" not in s:
+                print("|"*60)
                 print(s)
-                print("----")
+                # print("|"*60)
                 if save_dialogure:
                     with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+                        f.write("|" * 60 + "\n")
                         f.write(repr(s) + "\n")
-                        f.write("----\n")
+                        # f.write("|"*60 + "\n")
                     
                 # Print to console
+                log_file.write("|" * 60 + "\n")
                 log_file.write(f"{s}\n")
-                log_file.write("----\n")
+                # log_file.write("|"*60 + "\n")
                 log_file.flush()
 
         log_file.write(f"=== Session ended at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
