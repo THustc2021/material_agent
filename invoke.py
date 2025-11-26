@@ -117,42 +117,81 @@ if __name__ == "__main__":
 
     save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
 
-    print("Start, check the log file for details")
-    log_filename = f"./log/agent_stream_{int(time.time())}.log"  # Add timestamp to filename
-    if not os.path.exists(os.path.dirname(log_filename)):
-        os.makedirs(os.path.dirname(log_filename))
-    with open(log_filename, "a") as log_file:
-        log_file.write(f"=== Session started at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
-        if save_dialogure:
-            with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                f.write(f"=== Session started at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
-        
-        for s in graph.stream(
-            {
-                "input": f"{userMessage_1}",
-                "plan": [],
-                "past_steps": []
-            }, llm_config):
-            
-            if "__end__" not in s:
-                print("|"*60)
-                print(s)
-                # print("|"*60)
-                if save_dialogure:
-                    with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                        f.write("|" * 60 + "\n")
-                        f.write(repr(s) + "\n")
-                        # f.write("|"*60 + "\n")
-                    
-                # Print to console
-                log_file.write("|" * 60 + "\n")
-                log_file.write(f"{s}\n")
-                # log_file.write("|"*60 + "\n")
-                log_file.flush()
+    import shutil
+    userMessageList = [
+        userMessage_1,
+        userMessage_2,
+        userMessage_3,
+        userMessage_4,
+        userMessage_5,
+        userMessage_6,
+        userMessage_7,
+        userMessage_8,
+        userMessage_9,
+        userMessage_10,
+        userMessage_11,
+        userMessage_12,
+    ]
 
-        log_file.write(f"=== Session ended at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
-        if save_dialogure:
-            with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
-                f.write(f"=== Session ended at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
+    print("Start, check the log file for details")
+
+    # 结果存放总目录
+    RESULT_ROOT = WORKING_DIRECTORY + "__results"
+    os.makedirs(RESULT_ROOT, exist_ok=True)
+
+    for idx, umsg in enumerate(userMessageList, start=1):
+
+        print(f"=== Running message {idx} ===")
+
+        # 每轮开始前，确保 WORKING_DIRECTORY 是干净的
+        if os.path.exists(WORKING_DIRECTORY):
+            shutil.rmtree(WORKING_DIRECTORY)
+        os.makedirs(WORKING_DIRECTORY)
+
+        # 初始化数据库等（你原有逻辑不变）
+        db_file = os.path.join(WORKING_DIRECTORY, 'resource_suggestions.db')
+        initialize_database(db_file)
+
+        # ======= 运行该 message =======
+        log_filename = f"./log/agent_stream_msg{idx}_{int(time.time())}.log"
+        os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+
+        with open(log_filename, "a") as log_file:
+            log_file.write(f"=== Message {idx} started ===\n\n")
+
+            if save_dialogure:
+                with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+                    f.write(f"=== Message {idx} started ===\n\n")
+
+            for s in graph.stream(
+                    {"input": umsg, "plan": [], "past_steps": []},
+                    llm_config
+            ):
+                if "__end__" not in s:
+                    print("|" * 60)
+                    print(s)
+
+                    if save_dialogure:
+                        with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+                            f.write("|" * 60 + "\n")
+                            f.write(repr(s) + "\n")
+
+                    log_file.write("|" * 60 + "\n")
+                    log_file.write(f"{s}\n")
+                    log_file.flush()
+
+            log_file.write(f"=== Message {idx} ended ===\n\n")
+
+            if save_dialogure:
+                with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
+                    f.write(f"=== Message {idx} ended ===\n\n")
+
+        # ======= 将该 message 的工作目录移走 =======
+        msg_result_dir = os.path.join(RESULT_ROOT, f"msg_{idx}")
+        if os.path.exists(msg_result_dir):
+            shutil.rmtree(msg_result_dir)
+
+        shutil.move(WORKING_DIRECTORY, msg_result_dir)
+        print(f"Moved result of message {idx} → {msg_result_dir}")
 
     print("End, check the log file for details")
