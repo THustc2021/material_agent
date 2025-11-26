@@ -91,32 +91,6 @@ if __name__ == "__main__":
     please generate a single input script for Li BCC structure with kspacing 0.1 and ecutwfc 40
     '''
 
-    # print N number of '#', where n = len("##  Working directory: " + WORKING_DIRECTORY + " ##")
-    print("#" * (len("##  Working directory: " + WORKING_DIRECTORY + " ##")))
-    print("##  Working directory: " + WORKING_DIRECTORY + " ##")
-    print("#" * (len("##  Working directory: " + WORKING_DIRECTORY + " ##")))
-    
-    assert WORKING_DIRECTORY is not None, "Please set the WORKING_DIRECTORY var"
-    
-    CANVAS.set_working_directory(WORKING_DIRECTORY)
-    # CANVAS.canvas["finished_job_list"] = ["CO_Pt111_fcc_upright_k_0.3_ecutwfc_60.pwi"]
-    
-    # check if working directory exists, if so delete it
-    if os.path.exists(WORKING_DIRECTORY):
-        os.system(f"rm -rf {WORKING_DIRECTORY}")
-    
-    os.makedirs(WORKING_DIRECTORY, exist_ok=False)
-    
-    # check if resource_suggestions.db exist in the working directory
-    db_file = os.path.join(WORKING_DIRECTORY, 'resource_suggestions.db')
-    if os.path.exists(db_file):
-        os.remove(db_file)
-    initialize_database(db_file)
-
-    graph = create_graph()
-
-    save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
-
     import shutil
     userMessageList = [
         userMessage_1,
@@ -143,10 +117,20 @@ if __name__ == "__main__":
 
         print(f"=== Running message {idx} ===")
 
+        # print N number of '#', where n = len("##  Working directory: " + WORKING_DIRECTORY + " ##")
+        print("#" * (len("##  Working directory: " + WORKING_DIRECTORY + " ##")))
+        print("##  Working directory: " + WORKING_DIRECTORY + " ##")
+        print("#" * (len("##  Working directory: " + WORKING_DIRECTORY + " ##")))
+
         # 每轮开始前，确保 WORKING_DIRECTORY 是干净的
         if os.path.exists(WORKING_DIRECTORY):
             shutil.rmtree(WORKING_DIRECTORY)
         os.makedirs(WORKING_DIRECTORY)
+
+        assert WORKING_DIRECTORY is not None, "Please set the WORKING_DIRECTORY var"
+
+        CANVAS.set_working_directory(WORKING_DIRECTORY)
+        # CANVAS.canvas["finished_job_list"] = ["CO_Pt111_fcc_upright_k_0.3_ecutwfc_60.pwi"]
 
         # 初始化数据库等（你原有逻辑不变）
         db_file = os.path.join(WORKING_DIRECTORY, 'resource_suggestions.db')
@@ -156,6 +140,9 @@ if __name__ == "__main__":
         log_filename = f"./log/agent_stream_msg{idx}_{int(time.time())}.log"
         os.makedirs(os.path.dirname(log_filename), exist_ok=True)
 
+        graph = create_graph()
+        save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
+
         with open(log_filename, "a") as log_file:
             log_file.write(f"=== Message {idx} started ===\n\n")
 
@@ -164,8 +151,8 @@ if __name__ == "__main__":
                     f.write(f"=== Message {idx} started ===\n\n")
 
             for s in graph.stream(
-                    {"input": umsg, "plan": [], "past_steps": []},
-                    llm_config
+                {"input": umsg, "plan": [], "past_steps": []},
+                llm_config
             ):
                 if "__end__" not in s:
                     print("|" * 60)
