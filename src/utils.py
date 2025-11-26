@@ -1,5 +1,5 @@
 import sqlite3
-import os,yaml
+import os
 from typing import Callable, List, Literal
 from pydantic import BaseModel
 import pandas as pd
@@ -7,23 +7,7 @@ import pandas as pd
 from ase.io import read
 import numpy as np
 
-from src import var
 
-
-def load_config(path: str):
-    ## Load the configuration file
-    with open(path) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    ## Set up environment variables
-    for key, value in config.items():
-        var.OTHER_GLOBAL_VARIABLES[key] = value
-    var.my_WORKING_DIRECTORY = config["WORKING_DIR"]
-    return config
-
-# def check_config(config: dict):
-#     for key, value in config.items():
-#         _set_if_undefined(key)
-#     return 'Loaded config successfully'
 class AtomsDict(BaseModel):
     numbers: List[int]
     positions: List[List[float]]

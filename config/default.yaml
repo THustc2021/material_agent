@@ -1,6 +1,6 @@
 ## Environment variables
 OLLAMA_BASE_URL: "http://localhost:11434"
-OLLAMA_MODEL: "llama3.1:latest"
+OLLAMA_MODEL: "qwen3:latest"
 
 # Pseudo potential path
 PSEUDO_DIR: 'resources/all_lda_pbe_UPF'
@@ -8,4 +8,4 @@ PSEUDO_DIR: 'resources/all_lda_pbe_UPF'
 # Working directory
 WORKING_DIR: 'output/BEEFtry3out'
 
-SAVE_DIALOGUE: 'True'
+SAVE_DIALOGUE: true

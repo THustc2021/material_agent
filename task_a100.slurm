@@ -28,7 +28,7 @@ source ~/.bashrc
 module load ollama/0.6.0-GCCcore-13.3.0-CUDA-12.6.0
 
 # 启动 Ollama 服务
-ollama serve > ollama_server.log 2>&1 &
+ollama serve > log/ollama_server.log 2>&1 &
 
 sleep 8
 

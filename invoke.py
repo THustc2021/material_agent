@@ -1,11 +1,11 @@
-import os
 import time
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
 
-from src.planNexe2 import create_planning_graph as create_graph
-from src.utils import load_config, save_graph_to_file,initialize_database
+from src.graph import create_planning_graph as create_graph
+from src.utils import save_graph_to_file,initialize_database
 from src.myCANVAS import CANVAS
-from src import var
-
+from config.load_config import WORKING_DIRECTORY, config, save_dialogure
 
 if __name__ == "__main__":
 
@@ -15,7 +15,6 @@ if __name__ == "__main__":
     filelist = ['Li_bcc.in', 'Na_bcc.in', 'K_bcc.in', 'Si_dia.in', 'Pd_fcc.in', 'Ge_dia.in', 'Au_fcc.in', 'C_dia.in', 'Cu_fcc.in', 'Fe_bcc.in', 'Ca_fcc.in', 'Pb_fcc.in', 'W_bcc.in', 'Mo_bcc.in', 'Pt_fcc.in', 'Ag_fcc.in', 'Rh_fcc.in', 'Sr_fcc.in', 'Nb_bcc.in', 'Al_fcc.in', 'Rb_bcc.in', 'Ta_bcc.in', 'Ir_fcc.in', 'Sn_dia.in', 'Ba_bcc.in', 'V_bcc.in', 'Ni_fcc.in']
     
     structure = 'Li (bcc)'
-    # structure = 'Li (bcc)'
 
     ## Convergence Test
     userMessage_1 = f'''
@@ -91,11 +90,7 @@ if __name__ == "__main__":
     testMessage = '''
     please generate a single input script for Li BCC structure with kspacing 0.1 and ecutwfc 40
     '''
-    
-    config = load_config(os.path.join('./config', "default.yaml"))
-    # check_config(config)
-    
-    WORKING_DIRECTORY = var.my_WORKING_DIRECTORY
+
     # print N number of '#', where n = len("##  Working directory: " + WORKING_DIRECTORY + " ##")
     print("#" * (len("##  Working directory: " + WORKING_DIRECTORY + " ##")))
     print("##  Working directory: " + WORKING_DIRECTORY + " ##")
@@ -105,9 +100,6 @@ if __name__ == "__main__":
     
     CANVAS.set_working_directory(WORKING_DIRECTORY)
     # CANVAS.canvas["finished_job_list"] = ["CO_Pt111_fcc_upright_k_0.3_ecutwfc_60.pwi"]
-    
-    # set environment variable
-    os.environ["OMP_NUM_THREADS"] = "1"
     
     # check if working directory exists, if so delete it
     if os.path.exists(WORKING_DIRECTORY):
@@ -121,55 +113,10 @@ if __name__ == "__main__":
         os.remove(db_file)
     initialize_database(db_file)
 
-    graph = create_graph(config)
+    graph = create_graph()
     llm_config = {"thread_id": "1", 'recursion_limit': 1000}
-    
-    # print(graph)
-    
 
-    # save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
-    # exit()
-
-    
-    # for s in graph.stream(
-    # {
-    #     "messages": [
-    #         HumanMessage(content=f"{userMessage_4}")
-    #     ]
-    # },llm_config):
-    #     if "__end__" not in s:
-    #         print(s)
-    #         print("----")
-
-    # for s in graph.stream(
-    # {
-    #     "messages": [
-    #         HumanMessage(content=f"{userMessage_2}")
-    #     ]
-    # },llm_config):
-    #     if "__end__" not in s:
-    #         print(s)
-    #         print("----")
-
-    # for s in graph.stream(
-    # {
-    #     "input": f"{userMessage_6}",
-    #     "plan": [],
-    #     "past_steps": []
-    # },llm_config):
-    #     if "__end__" not in s:
-    #         print(s)
-    #         print("----")
-            
-    # for s in graph.stream(
-    # {
-    #     "input": [
-    #         HumanMessage(content=f"{userMessage_5}")
-    #     ]
-    # },llm_config):
-    #     if "__end__" not in s:
-    #         print(s)
-    #         print("----")
+    save_graph_to_file(graph, WORKING_DIRECTORY, "super_graph")
 
     print("Start, check the log file for details")
     log_filename = f"./log/agent_stream_{int(time.time())}.log"  # Add timestamp to filename
@@ -177,13 +124,13 @@ if __name__ == "__main__":
         os.makedirs(os.path.dirname(log_filename))
     with open(log_filename, "a") as log_file:
         log_file.write(f"=== Session started at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
-        if eval(config["SAVE_DIALOGUE"]):
+        if save_dialogure:
             with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
                 f.write(f"=== Session started at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
         
         for s in graph.stream(
             {
-                "input": f"{userMessage_10}",
+                "input": f"{userMessage_1}",
                 "plan": [],
                 "past_steps": []
             }, llm_config):
@@ -191,7 +138,7 @@ if __name__ == "__main__":
             if "__end__" not in s:
                 print(s)
                 print("----")
-                if eval(config["SAVE_DIALOGUE"]):
+                if save_dialogure:
                     with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
                         f.write(repr(s) + "\n")
                         f.write("----\n")
@@ -200,8 +147,10 @@ if __name__ == "__main__":
                 log_file.write(f"{s}\n")
                 log_file.write("----\n")
                 log_file.flush()
+
         log_file.write(f"=== Session ended at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
-        if eval(config["SAVE_DIALOGUE"]):
+        if save_dialogure:
             with open(f"{WORKING_DIRECTORY}/his.txt", "a") as f:
                 f.write(f"=== Session ended at {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n\n")
+
     print("End, check the log file for details")
