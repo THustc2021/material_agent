@@ -879,13 +879,16 @@ def get_kspacing_ecutwfc(jobFileIdx: Annotated[List[int], "indexs of files in th
     output: str, the kspacing and ecutwfc used in the production
     '''
 
-    assert isinstance(jobFileIdx, list), "jobFileIdx should be a list"
+    if not isinstance(jobFileIdx, list):
+        return "jobFileIdx should be a list"
     for i in jobFileIdx:
-        assert isinstance(i, int), "jobFileIdx should be a list of index of files of interest"
+        if not isinstance(i, int):
+            return "jobFileIdx should be a list of index of files of interest"
     
     job_dict = CANVAS.canvas.get('jobs_K_and_ecut', {})
     job_list = CANVAS.canvas.get('finished_job_list', []).copy()
-    assert len(job_list) > 0, "job list 0"
+    if len(job_list) <= 0:
+        return "job list 0"
 
     job_list = np.array(job_list, dtype=str)[jobFileIdx]
     print(f"actual job list: {job_list}")
