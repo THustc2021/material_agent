@@ -135,15 +135,19 @@ def extract_tool_calls(state, runtime):
             re.DOTALL
         )
         if m:
-            tool_calls = [json.loads(g) for g in m.groups()]
-            for mt in tool_calls:
-                if "name" not in mt:
-                    return state
-                if "args" not in mt:
-                    mt["args"] = {}
-                if "id" not in mt:
-                    mt["id"] = str(random.randint(0, 1000000))
-            message.tool_calls = tool_calls
+            try:
+                tool_calls = [json.loads(g) for g in m.groups()]
+                for mt in tool_calls:
+                    if "name" not in mt:
+                        return state
+                    if "args" not in mt:
+                        mt["args"] = {}
+                    if "id" not in mt:
+                        mt["id"] = str(random.randint(0, 1000000))
+                message.tool_calls = tool_calls
+            except Exception as e:
+                state["messages"].remove(message)
+                return state
     return state
 
 @wrap_tool_call
